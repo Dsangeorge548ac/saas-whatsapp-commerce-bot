@@ -1,0 +1,26 @@
+# Secretos: nunca se suben a git (.env.example sí, porque no tiene valores)
+.env*
+!.env.example
+*.pem
+
+# Dependencias
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js y builds
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Pruebas
+/coverage
+
+# Varios
+.DS_Store
+npm-debug.log*

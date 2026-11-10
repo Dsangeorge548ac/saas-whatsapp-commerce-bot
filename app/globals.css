@@ -1,0 +1,207 @@
+/*
+ * Estilos globales de Tax Pro.
+ * Los colores salen SOLO de estos tokens (ver la skill design-system).
+ * shadcn/ui usa sus propias variables (--primary, --accent, --sidebar…);
+ * aquí se apuntan a nuestra paleta para que ambos sistemas coincidan.
+ * Solo modo claro en esta fase.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+/* SweetAlert2 (confirmaciones). En la capa "components" para que las utilidades de Tailwind
+   (customClass en components/feedback/sweet-confirm.ts) siempre ganen sobre su CSS. */
+@import "sweetalert2/dist/sweetalert2.min.css" layer(components);
+
+/* Tokens de Tax Pro (nombres usados en las skills: bg-canvas, text-fg-muted, bg-success…) */
+@theme {
+  --color-sidebar-fg: #ffffff;
+  --color-sidebar-muted: #9ca3af;
+  --color-accent-fg: #ffffff;
+  --color-canvas: #f8f9fa;
+  --color-surface: #ffffff;
+  --color-fg: #111827;
+  --color-fg-muted: #6b7280;
+  --color-chart-muted: #e5e7eb;
+  --color-chart-muted-strong: #d1d5db;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  /* Versión oscura del rojo SOLO para texto y fondos de botones de peligro:
+     #ef4444 sobre blanco no llega al contraste mínimo de lectura (4.5:1). */
+  --color-danger-strong: #b91c1c;
+  /* Hover de botones de acento: un poco más oscuro que --accent. */
+  --color-accent-hover: #000000;
+}
+
+/* Puente con shadcn/ui: cada clase de shadcn lee su variable de :root */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Regla del usuario: TODO elemento (modales, tablas, tarjetas, inputs, botones, menús…) usa
+     8px de radio. Por eso todas las escalas apuntan al mismo valor: rounded-md, -lg, -xl,
+     -2xl y -3xl dan 8px. Excepciones: rounded-full (avatares, píldoras, círculos) y el panel de
+     contenido junto al sidebar (app/(app)/layout.tsx), que usa su propio radio. */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+}
+
+:root {
+  color-scheme: light;
+
+  /* Superficies y texto */
+  --background: #ffffff;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  /* Botón principal negro */
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+
+  /* Acento casi negro: el texto y los iconos encima usan --accent-foreground (blanco).
+     En los componentes: "bg-accent text-accent-foreground", nunca text-black fijo. */
+  --accent: #000c;
+  --accent-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #000000;
+
+  /* Gráficos: lima para el dato activo, grises para los secundarios (nunca azul) */
+  --chart-1: #d4f269;
+  --chart-2: #e5e7eb;
+  --chart-3: #d1d5db;
+  --chart-4: #9ca3af;
+  --chart-5: #111827;
+
+  /* Radio único de la interfaz: 8px (ver --radius-* arriba). */
+  --radius: 8px;
+
+  /* Sidebar primario negro */
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #d4f269;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: rgb(255 255 255 / 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: #d4f269;
+}
+
+/* SweetAlert2 recibe clics aunque un Dialog de Radix aún esté cerrándose (Radix pone
+   pointer-events: none en el body mientras está abierto). */
+.swal2-container {
+  pointer-events: auto;
+}
+
+/* Fondo del canvas con cuadrícula de puntos (dashboard y Configuración) */
+@utility bg-dot-grid {
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(var(--color-chart-muted-strong) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #ffffff;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Regla del usuario: NINGÚN botón supera los 8px de radio (nada de píldoras ni círculos).
+     Única excepción: el botón del avatar del riel, que envuelve una foto redonda.
+     Ojo: las clases de Tailwind (capa utilities) ganan a esta regla (capa base), así que en el
+     código tampoco se usa rounded-full en botones; esta regla es el valor por defecto. */
+  button:not([data-rail-account]),
+  [role="button"],
+  [data-slot="button"] {
+    border-radius: var(--radius);
+  }
+
+  html {
+    @apply font-sans;
+  }
+}
+
+/* Barra de scroll blanca y moderna (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-corner {
+  background: #ffffff;
+}

@@ -1,0 +1,15 @@
+/**
+ * Cliente de Supabase para el NAVEGADOR (Client Components).
+ * Úsalo solo cuando haga falta (por ejemplo, subir archivos a una URL firmada).
+ * Las operaciones sensibles van por Server Actions.
+ */
+import { createBrowserClient } from "@supabase/ssr";
+import { publicEnv } from "@/lib/env";
+import type { Database } from "@/types/database";
+
+export function createClient() {
+  return createBrowserClient<Database>(
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
+}
