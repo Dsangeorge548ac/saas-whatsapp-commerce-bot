@@ -7,11 +7,13 @@
  * Seguridad (no hay sesión: la firma ES la autenticación):
  *   1. Se lee el cuerpo CRUDO (máx. 1 MB) y se verifica X-Hub-Signature-256 con el app secret ANTES de
  *      tocar la base de datos. Firma inválida → 401 sin procesar nada.
- *   2. Cada evento se guarda en webhook_events con llave única (wamid): los reintentos de Meta no se
- *      procesan dos veces (idempotencia).
- *   3. Se responde 200 enseguida y el procesamiento sigue en segundo plano (after): Meta reintenta si
- *      tarda, y eso crearía duplicados.
- *   4. El comercio se resuelve por metadata.phone_number_id (índice único); números desconocidos se ignoran.
+ *   2. Todos los eventos de la petición entran a la COLA (webhook_events) en UN solo viaje a la base
+ *      (ingest_webhook_events): resuelve el comercio por phone_number_id, ignora números desconocidos y descarta
+ *      los reintentos de Meta por la llave única (idempotencia).
+ *   3. Se responde 200 enseguida (Meta reintenta si tardamos, y eso crearía duplicados). Después, en segundo
+ *      plano (after), esta misma instancia vacía la cola un rato acotado; lo que quede o falle lo retoma el
+ *      trabajador programado (/api/jobs/webhooks) con reintentos y espera exponencial. Si la base falla al
+ *      guardar se responde 500 y Meta reintenta: ningún mensaje se pierde.
  * Sin las variables META_* configuradas responde 503 (falla cerrado).
  * Nota: no se exporta `runtime` (con cacheComponents Next 16 lo rechaza); corre en Node.js por defecto.
  */
@@ -21,9 +23,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env.server";
 import { eventKey, extractEvents, webhookPayloadSchema } from "@/lib/whatsapp/payload";
 import { safeEqual, verifySignature } from "@/lib/whatsapp/signature";
-import { processStoredEvent } from "@/features/whatsapp/process-event";
+import { drainWebhookQueue } from "@/features/whatsapp/queue";
 
 const MAX_BODY_BYTES = 1_000_000;
+/** Tiempo que esta instancia dedica a vaciar la cola después de responder (bajo el límite de la función). */
+const DRAIN_BUDGET_MS = 20_000;
+export const maxDuration = 30;
 
 /** Verificación del webhook (Meta llama con GET al registrarlo). */
 export async function GET(request: NextRequest) {
@@ -67,34 +72,18 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // 4) Resolver el comercio de cada número de Meta.
-  const numbers = [...new Set(events.map((event) => event.phoneNumberId))];
-  const { data: accounts, error: accountsError } = await admin
-    .from("tenant_whatsapp_accounts")
-    .select("tenant_id, phone_number_id")
-    .in("phone_number_id", numbers);
-  // Si la base falla se responde 500: Meta reintentará y no se pierde el evento.
-  if (accountsError) return new NextResponse("Unavailable", { status: 500 });
-  const tenantByNumber = new Map((accounts ?? []).map((account) => [account.phone_number_id, account.tenant_id]));
+  // 2) Encolar (un solo viaje a la base). Si falla, 500: Meta reintenta y no se pierde nada.
+  const payload = events.map((event) => ({ phone_number_id: event.phoneNumberId, event_key: eventKey(event), payload: event }));
+  const { data: queued, error } = await admin.rpc("ingest_webhook_events", { p_events: payload as unknown as Json });
+  if (error) {
+    console.error(`[whatsapp] No se pudo encolar el webhook: ${error.code ?? "?"}`);
+    return new NextResponse("Unavailable", { status: 500 });
+  }
 
-  // 2) Guardar los eventos nuevos (los duplicados se descartan por la llave única).
-  const rows = events.flatMap((event) => {
-    const tenantId = tenantByNumber.get(event.phoneNumberId);
-    return tenantId ? [{ tenant_id: tenantId, event_key: eventKey(event), payload: event as unknown as Json }] : [];
-  });
-  if (rows.length === 0) return new NextResponse("ok", { status: 200 });
-
-  const { data: inserted, error: insertError } = await admin
-    .from("webhook_events")
-    .upsert(rows, { onConflict: "event_key", ignoreDuplicates: true })
-    .select("id");
-  if (insertError) return new NextResponse("Unavailable", { status: 500 });
-
-  // 3) Responder ya; procesar en segundo plano y en orden de llegada.
-  const ids = (inserted ?? []).map((row) => row.id);
-  if (ids.length > 0) {
+  // 3) Responder ya; procesar en segundo plano con tiempo acotado.
+  if ((queued ?? 0) > 0 && getServerEnv().WEBHOOK_DRAIN_ON_RECEIVE === "1") {
     after(async () => {
-      for (const id of ids) await processStoredEvent(admin, id);
+      await drainWebhookQueue(admin, { budgetMs: DRAIN_BUDGET_MS });
     });
   }
   return new NextResponse("ok", { status: 200 });

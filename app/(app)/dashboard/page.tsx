@@ -11,7 +11,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ClipboardList, MessageCircle, Store } from "lucide-react";
 import { Alert } from "@/components/feedback/alert";
 import { SetupChecklist } from "@/features/onboarding/components/SetupChecklist";
 import { currentMembership, requireWorkspace } from "@/lib/data/workspace";
@@ -65,9 +64,9 @@ async function DashboardContent() {
 }
 
 const OPERATOR_LINKS = [
-  { href: "/orders", title: "Orders", text: "Review payment proofs and move orders forward.", icon: ClipboardList },
-  { href: "/chats", title: "Chats", text: "Answer customers who asked for an agent.", icon: MessageCircle },
-  { href: "/catalog", title: "Catalog", text: "See the products and catalogs customers order from.", icon: Store },
+  { href: "/orders", title: "Orders", text: "Review payment proofs and move orders forward.", iconClass: "ki-filled ki-basket" },
+  { href: "/chats", title: "Chats", text: "Answer customers who asked for an agent.", iconClass: "ki-filled ki-messages" },
+  { href: "/catalog", title: "Catalog", text: "See the products and catalogs customers order from.", iconClass: "ki-filled ki-shop" },
 ] as const;
 
 /** Inicio del operador: accesos a sus módulos. Sin plan vigente, solo el aviso de pedírselo al dueño. */
@@ -81,10 +80,10 @@ function OperatorHome({ billable, businessName }: { billable: boolean; businessN
   }
   return (
     <ul className="grid gap-4 sm:grid-cols-3">
-      {OPERATOR_LINKS.map(({ href, title, text, icon: Icon }) => (
+      {OPERATOR_LINKS.map(({ href, title, text, iconClass }) => (
         <li key={href}>
           <Link href={href} className="flex h-full flex-col gap-3 rounded-lg border border-border bg-surface p-5 transition-colors hover:bg-canvas focus-visible:ring-2 focus-visible:ring-black">
-            <span className="grid size-9 place-items-center rounded-lg bg-black text-white"><Icon className="size-4" aria-hidden /></span>
+            <span className="grid size-9 place-items-center rounded-lg bg-black text-white"><i className={`${iconClass} text-lg text-white`} aria-hidden /></span>
             <span>
               <span className="block text-sm font-semibold text-fg">{title}</span>
               <span className="mt-1 block text-sm text-fg-muted">{text}</span>

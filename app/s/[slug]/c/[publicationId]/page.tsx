@@ -40,15 +40,16 @@ async function PublicationContent({
 
   return (
     <>
-      <StoreHeader name={business.name} accent={business.accent_color} backHref="/" />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <StoreHeader name={business.name} accent={business.accent_color} slug={slug} hasLogo={business.has_logo} isOpen={business.is_open} whatsapp={business.whatsapp} backHref={token ? `/s/${slug}?t=${token}` : `/s/${slug}`} />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6">
         {!page.available || !page.publication ? (
-          <p className="mx-auto max-w-md text-center text-sm text-fg-muted">This store is temporarily unavailable. Please check back soon.</p>
+          <p className="mx-auto max-w-md py-24 text-center text-sm text-fg-muted">Esta tienda no está disponible temporalmente. Por favor, vuelve a consultar más tarde.</p>
         ) : (
           <>
-            <h1 className="text-2xl font-medium tracking-tight text-fg">{page.publication.title}</h1>
-            {page.publication.description ? <p className="mt-2 max-w-2xl text-sm text-fg-muted">{page.publication.description}</p> : null}
-            <div className="mt-6">
+            {page.publication.description ? (
+              <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-fg-muted">{page.publication.description}</p>
+            ) : null}
+            <div className="mt-2">
               <StoreCards
                 items={(page.items ?? []).map((item) => ({
                   id: item.id,
@@ -57,12 +58,16 @@ async function PublicationContent({
                   price: item.price,
                   priceVisible: item.price_visible,
                   hasImage: item.has_image,
+                  categoryId: item.category_id ?? null,
                 }))}
                 currency={business.currency ?? "USD"}
                 token={token}
                 whatsapp={business.whatsapp ?? null}
                 accent={safeBrandColor(business.accent_color)}
                 businessName={business.name}
+                acceptsDelivery={business.accepts_delivery ?? true}
+                acceptsPickup={business.accepts_pickup ?? false}
+                sectionTitle={page.publication.title}
               />
             </div>
           </>

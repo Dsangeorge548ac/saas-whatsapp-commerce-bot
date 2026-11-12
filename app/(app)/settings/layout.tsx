@@ -4,6 +4,7 @@
  * Solo el DUEÑO configura el comercio (negocio, horario, pagos, mensajes, WhatsApp, equipo y plan). Un
  * operador ve un aviso. Esto es solo la parte visual: las Server Actions y la base de datos (RLS y
  * funciones) vuelven a exigir que sea el dueño. Lee la sesión, por eso va dentro de <Suspense>.
+ * Rendimiento: la consulta del estado de la guía (puntos de las pestañas) corre EN PARALELO con la de la página.
  */
 import { Suspense } from "react";
 import { Alert } from "@/components/feedback/alert";
@@ -41,20 +42,26 @@ async function SettingsShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Pasos pendientes de la guía → punto "needs attention" en su pestaña (solo los obligatorios).
-  const supabase = await createClient();
-  const { data: onboarding } = await supabase.rpc("get_onboarding_status", { p_tenant: membership.tenant_id });
-  const steps = Array.isArray((onboarding as { steps?: unknown } | null)?.steps) ? ((onboarding as { steps: { key: string; done: boolean }[] }).steps) : [];
-  const attention = steps.filter((step) => !step.done && STEP_TAB[step.key]).map((step) => STEP_TAB[step.key]!);
-
   return (
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-2xl font-medium tracking-tight text-fg">Settings</h1>
         <p className="mt-1 text-sm text-fg-muted">Everything here is free to set up. You only need a plan to turn the bot on and invite your team.</p>
       </header>
-      <SettingsTabs attention={[...new Set(attention)]} />
+      {/* Las pestañas consultan su estado por su cuenta: la página de abajo ya no espera esa consulta. */}
+      <Suspense fallback={<SettingsTabs attention={[]} />}>
+        <SettingsTabsWithStatus tenantId={membership.tenant_id} />
+      </Suspense>
       {children}
     </div>
   );
+}
+
+/** Pestañas con el punto "needs attention" en los pasos obligatorios pendientes de la guía. */
+async function SettingsTabsWithStatus({ tenantId }: { tenantId: string }) {
+  const supabase = await createClient();
+  const { data: onboarding } = await supabase.rpc("get_onboarding_status", { p_tenant: tenantId });
+  const steps = Array.isArray((onboarding as { steps?: unknown } | null)?.steps) ? (onboarding as { steps: { key: string; done: boolean }[] }).steps : [];
+  const attention = steps.filter((step) => !step.done && STEP_TAB[step.key]).map((step) => STEP_TAB[step.key]!);
+  return <SettingsTabs attention={[...new Set(attention)]} />;
 }

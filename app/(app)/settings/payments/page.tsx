@@ -3,7 +3,6 @@
  */
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaymentMethodDialog, type PaymentMethodItem } from "@/features/settings/components/PaymentMethodDialog";
 import { PaymentMethodRow } from "@/features/settings/components/PaymentMethodRow";
@@ -46,7 +45,7 @@ async function PaymentsContent() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md text-sm text-fg-muted">Add at least one active method. The bot shows it to the customer after they confirm their order.</p>
         <PaymentMethodDialog>
-          <Button><Plus aria-hidden /> Add method</Button>
+          <Button><i className="ki-filled ki-plus text-base" aria-hidden /> Add method</Button>
         </PaymentMethodDialog>
       </div>
       {methods.length === 0 ? (

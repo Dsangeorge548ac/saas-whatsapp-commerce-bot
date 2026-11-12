@@ -29,6 +29,9 @@
   /* Versión oscura del rojo SOLO para texto y fondos de botones de peligro:
      #ef4444 sobre blanco no llega al contraste mínimo de lectura (4.5:1). */
   --color-danger-strong: #b91c1c;
+  /* Lo mismo para verde y ámbar: texto de insignias legible (contraste ≥ 4.5:1 sobre su fondo suave). */
+  --color-success-strong: #047857;
+  --color-warning-strong: #b45309;
   /* Hover de botones de acento: un poco más oscuro que --accent. */
   --color-accent-hover: #000000;
 }

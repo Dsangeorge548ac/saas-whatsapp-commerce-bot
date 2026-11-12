@@ -32,16 +32,18 @@ const mine = [chat(3, { name: "Luis Gómez", assignedTo: ME, assignedName: "You"
 const others = [chat(4, { name: "María Ruiz", assignedTo: "x", assignedName: "Carla Díaz", lastMessage: { body: "Le confirmo en unos minutos", direction: "outbound", createdAt: ago(15), type: "text" } })];
 
 const m = (i: number, over: Partial<ThreadMessage>): ThreadMessage => ({
-  id: `m${i}`, direction: "inbound", senderType: "customer", senderName: null, type: "text", body: "", status: null, createdAt: ago(60 - i * 5), ...over,
+  id: `m${i}`, direction: "inbound", senderType: "customer", senderName: null, type: "text", body: "", status: null, createdAt: ago(60 - i * 5), event: null, ...over,
 });
 const messages: ThreadMessage[] = [
   m(1, { direction: "outbound", senderType: "bot", body: "¡Hola Luis! 🥐 Bienvenido a Luna Bakery.", status: "read" }),
   m(2, { body: "Quiero hablar con alguien por favor" }),
   m(3, { direction: "outbound", senderType: "bot", body: "Un asesor te atenderá en breve. Gracias por tu paciencia.", status: "delivered" }),
+  m(3.5, { direction: "outbound", senderType: "bot", body: "👋 Ahora te atiende un asesor de Luna Bakery. Cuéntanos en qué te podemos ayudar.", status: "delivered", event: "agent_joined" }),
   m(4, { direction: "outbound", senderType: "operator", senderName: "Carla Díaz", body: "Hola Luis, soy Carla. ¿En qué te ayudo?", status: "read" }),
   m(5, { body: "Necesito una torta para el sábado, ¿hasta qué hora hacen pedidos?" }),
   m(6, { direction: "outbound", senderType: "operator", senderName: "Carla Díaz", body: "Hasta el jueves a las 6 PM. Te paso el catálogo.", status: "failed" }),
   m(7, { type: "location", body: null }),
+  m(8, { direction: "outbound", senderType: "bot", body: "Gracias por escribirnos. El asesor terminó esta conversación.", status: "read", event: "agent_left" }),
 ];
 
 export default function ChatsPreviewPage() {

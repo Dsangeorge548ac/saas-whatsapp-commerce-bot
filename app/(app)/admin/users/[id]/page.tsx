@@ -11,7 +11,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { Metadata } from "next";
-import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { Alert } from "@/components/feedback/alert";
 import { StatusBadge, type BadgeTone } from "@/components/layout/status-badge";
@@ -88,7 +87,7 @@ async function UserContent({ params, searchParams }: Pick<PageProps<"/admin/user
   return (
     <div className="flex w-full flex-col gap-8 py-2">
       <div>
-        <Link href="/admin/users" className="inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg"><ArrowLeft className="size-4" aria-hidden /> All users</Link>
+        <Link href="/admin/users" className="inline-flex items-center gap-1.5 text-sm text-fg-muted hover:text-fg"><i className="ki-filled ki-arrow-left text-sm" aria-hidden /> All users</Link>
         <div className="mt-3 flex items-center gap-4">
           <UserAvatar firstName={user.first_name} lastName={user.last_name} size="lg" imageUrl={avatarUrl(user.id, user.avatar_path)} />
           <div className="min-w-0">

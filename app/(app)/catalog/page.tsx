@@ -5,7 +5,7 @@
  */
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { LayoutGrid, Package, Tags } from "lucide-react";
+import { storeUrl } from "@/lib/storefront/url";
 import { SectionTabs } from "@/components/layout/section-tabs";
 import { Alert } from "@/components/feedback/alert";
 import { CategoriesPanel } from "@/features/catalog/components/CategoriesPanel";
@@ -25,9 +25,9 @@ const TABS = [
 ] as const;
 
 const TAB_ICONS: Record<(typeof TABS)[number]["id"], React.ReactNode> = {
-  products: <Package />,
-  categories: <Tags />,
-  catalogs: <LayoutGrid />,
+  products: <i className="ki-filled ki-package" />,
+  categories: <i className="ki-filled ki-price-tag" />,
+  catalogs: <i className="ki-filled ki-element-11" />,
 };
 
 export default function CatalogPage({ searchParams }: PageProps<"/catalog">) {
@@ -36,6 +36,12 @@ export default function CatalogPage({ searchParams }: PageProps<"/catalog">) {
       <CatalogContent searchParams={searchParams} />
     </Suspense>
   );
+}
+
+async function loadCurrency(tenantId: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("tenant_settings").select("currency").eq("tenant_id", tenantId).maybeSingle();
+  return data?.currency ?? "USD";
 }
 
 async function CatalogContent({ searchParams }: Pick<PageProps<"/catalog">, "searchParams">) {
@@ -50,8 +56,8 @@ async function CatalogContent({ searchParams }: Pick<PageProps<"/catalog">, "sea
   const params = productListParamsSchema.parse({ page: first(query.page), q: first(query.q), category: first(query.category) });
   const canEdit = membership.role === "owner";
 
-  const supabase = await createClient();
-  const { data: settings } = await supabase.from("tenant_settings").select("currency").eq("tenant_id", membership.tenant_id).maybeSingle();
+  // La moneda se pide SIN esperar: el panel la espera a la vez que sus productos (una sola ronda a la base).
+  const currency = loadCurrency(membership.tenant_id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,12 +70,26 @@ async function CatalogContent({ searchParams }: Pick<PageProps<"/catalog">, "sea
         </p>
       </header>
 
+      {/* Dirección de la tienda pública: ahí aparecen TODOS los productos disponibles. */}
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-black text-white"><i className="ki-filled ki-geolocation text-xl text-white" aria-hidden /></span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-fg-muted">Your public store · every available product appears here</p>
+            <p className="truncate text-sm font-semibold text-fg">{storeUrl(membership.slug, "/").replace(/^https?:\/\//, "").replace(/\/$/, "")}</p>
+          </div>
+        </div>
+        <a href={storeUrl(membership.slug, "/")} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium text-fg hover:bg-muted">
+          Open store <i className="ki-filled ki-arrow-up-right text-sm" aria-hidden />
+        </a>
+      </div>
+
       <SectionTabs
         label="Catalog sections"
         tabs={TABS.map((item) => ({ href: `/catalog?tab=${item.id}`, label: item.label, icon: TAB_ICONS[item.id], active: tab === item.id }))}
       />
 
-      {tab === "products" ? <ProductsPanel tenantId={membership.tenant_id} currency={settings?.currency ?? "USD"} canEdit={canEdit} params={params} /> : null}
+      {tab === "products" ? <ProductsPanel tenantId={membership.tenant_id} currency={currency} canEdit={canEdit} params={params} /> : null}
       {tab === "categories" ? <CategoriesPanel categories={await listCategories(membership.tenant_id)} canEdit={canEdit} /> : null}
       {tab === "catalogs" ? <PublicationsPanel tenantId={membership.tenant_id} slug={membership.slug} canEdit={canEdit} /> : null}
     </div>

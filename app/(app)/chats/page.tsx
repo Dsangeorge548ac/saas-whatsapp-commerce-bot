@@ -46,7 +46,7 @@ async function ChatsContent({ searchParams }: Pick<PageProps<"/chats">, "searchP
 
   return (
     <div className="flex flex-col gap-6">
-      <RealtimeRefresh tenantId={membership.tenant_id} tables={["conversation_sessions", "messages"]} channelName="chats" />
+      <RealtimeRefresh tenantId={membership.tenant_id} tables={["conversation_sessions", "messages"]} channelName="chats" minGapMs={600} />
       <header>
         <h1 className="text-2xl font-medium tracking-tight text-fg">Chats</h1>
         <p className="mt-1 text-sm text-fg-muted">Customers who asked for an agent. While you handle a conversation the bot stays silent. Give it back to the bot when you&apos;re done.</p>

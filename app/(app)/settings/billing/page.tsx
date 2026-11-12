@@ -5,18 +5,21 @@
  * suscripción PAGADA vigente se muestra la tabla "Your subscription" (plan, precio, renovación, tarjeta) y las cards
  * de planes desaparecen, como en Tax Pro; el cambio de plan y la cancelación van por el portal de Stripe. Sin plan
  * pagado (en configuración, con cortesía o tras cancelar) se muestran las cards para elegir uno. El estado sale de la base de datos, que Stripe actualiza por webhook (Stripe es
- * la fuente de verdad). Tras el pago, /api/billing/return sincroniza al instante y redirige aquí.
+ * la fuente de verdad). Debajo, el historial de suscripciones (nuevas, activas, canceladas, vencidas y fallidas) y
+ * el de pagos. Tras el pago, /api/billing/return sincroniza al instante y redirige aquí.
  */
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { ExternalLink } from "lucide-react";
+import { z } from "zod";
 import { TableCard, rowClass, tdClass, thClass, theadClass } from "@/components/data/data-table";
 import { Alert } from "@/components/feedback/alert";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/layout/status-badge";
 import { ManageBillingButton } from "@/features/billing/components/BillingButtons";
 import { PlanCards } from "@/features/billing/components/PlanCards";
+import { SubscriptionHistory } from "@/features/billing/components/SubscriptionHistory";
 import { SubscriptionSummary } from "@/features/billing/components/SubscriptionSummary";
+import { ownHistoryRowSchema } from "@/features/billing/history";
 import { getSubscriptionCard } from "@/lib/stripe/card";
 import { formatMoney } from "@/lib/whatsapp/format";
 import { currentMembership, requireWorkspace } from "@/lib/data/workspace";
@@ -53,10 +56,13 @@ async function BillingContent({ searchParams }: Pick<PageProps<"/settings/billin
   if (!membership) return null;
 
   const supabase = await createClient();
-  const [{ data: subscription }, { data: payments }] = await Promise.all([
+  const [{ data: subscription }, { data: payments }, { data: historyData }] = await Promise.all([
     supabase.from("tenant_subscriptions").select("plan_id, status, current_period_end, cancel_at_period_end, comp_access_until, past_due_since, billing_interval, activated_at, stripe_subscription_id").eq("tenant_id", membership.tenant_id).maybeSingle(),
     supabase.from("payments").select("id, amount_cents, currency, status, paid_at, created_at, hosted_invoice_url").eq("tenant_id", membership.tenant_id).order("created_at", { ascending: false }).limit(12),
+    // Historial de todas sus suscripciones (la base exige que sea el dueño; para otros no devuelve nada).
+    supabase.rpc("get_my_subscription_history", { p_tenant: membership.tenant_id }),
   ]);
+  const history = z.array(ownHistoryRowSchema).safeParse(historyData ?? []);
 
   const live = Boolean(subscription && LIVE.includes(subscription.status));
   const complimentary = Boolean(subscription?.comp_access_until && new Date(subscription.comp_access_until) > new Date());
@@ -114,12 +120,14 @@ async function BillingContent({ searchParams }: Pick<PageProps<"/settings/billin
         <section aria-labelledby="plans" className="flex flex-col gap-4">
           <div>
             <h2 id="plans" className="text-lg font-semibold tracking-tight text-fg">Choose your plan</h2>
-            <p className="mt-1 text-sm text-fg-muted">Pay monthly, or yearly and save 17%. Prices in USD. Your plan renews on the same day you subscribe. Cancel anytime.</p>
+            <p className="mt-1 text-sm text-fg-muted">Pay monthly, or yearly and save 30%. Prices in USD. Your plan renews on the same day you subscribe. Cancel anytime.</p>
           </div>
           <PlanCards currentPlanId={null} canSubscribe />
         </section>
         </>
       )}
+
+      <SubscriptionHistory rows={history.success ? history.data : []} />
 
       {(payments ?? []).length > 0 ? (
         <section aria-labelledby="history" className="flex flex-col gap-3">
@@ -142,7 +150,7 @@ async function BillingContent({ searchParams }: Pick<PageProps<"/settings/billin
                   <td className={cn(tdClass, "text-right")}>
                     {payment.hosted_invoice_url ? (
                       <a href={payment.hosted_invoice_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-fg underline-offset-2 hover:underline">
-                        View <ExternalLink className="size-3.5" aria-hidden />
+                        View <i className="ki-filled ki-arrow-up-right text-xs" aria-hidden />
                       </a>
                     ) : <span className="text-fg-muted">—</span>}
                   </td>

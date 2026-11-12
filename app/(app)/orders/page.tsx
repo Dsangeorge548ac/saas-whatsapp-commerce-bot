@@ -39,7 +39,6 @@ async function OrdersContent({ searchParams }: Pick<PageProps<"/orders">, "searc
   const view = first(query.view) === "history" ? "history" : "board";
   const history = historyParamsSchema.parse({ page: first(query.page), status: first(query.status) });
   const orderId = orderIdSchema.safeParse(first(query.order));
-  const detail = orderId.success ? await getOrderDetail(membership.tenant_id, orderId.data) : null;
   const closeHref = view === "history" ? `/orders?view=history&status=${history.status}&page=${history.page}` : "/orders";
   const now = new Date();
 
@@ -60,12 +59,13 @@ async function OrdersContent({ searchParams }: Pick<PageProps<"/orders">, "searc
         />
       </header>
 
-      {view === "board" ? <BoardView tenantId={membership.tenant_id} selectedId={detail?.order.id ?? null} now={now} /> : <HistoryTable tenantId={membership.tenant_id} params={history} />}
+      {view === "board" ? <BoardView tenantId={membership.tenant_id} selectedId={orderId.success ? orderId.data : null} now={now} /> : <HistoryTable tenantId={membership.tenant_id} params={history} />}
 
-      {detail ? (
-        <OrderSheet title={`Order #${detail.order.order_number}`} closeHref={closeHref}>
-          <OrderDetail detail={detail} />
-        </OrderSheet>
+      {/* El detalle se carga a la vez que el tablero (antes el tablero esperaba al detalle). */}
+      {orderId.success ? (
+        <Suspense fallback={null}>
+          <OrderSheetLoader tenantId={membership.tenant_id} orderId={orderId.data} closeHref={closeHref} />
+        </Suspense>
       ) : null}
     </div>
   );
@@ -74,4 +74,15 @@ async function OrdersContent({ searchParams }: Pick<PageProps<"/orders">, "searc
 async function BoardView({ tenantId, selectedId, now }: { tenantId: string; selectedId: string | null; now: Date }) {
   const { columns, unpaid } = await getBoard(tenantId);
   return <KanbanBoard columns={columns} unpaid={unpaid} selectedId={selectedId} now={now} />;
+}
+
+/** Panel lateral con el detalle de un pedido. Si el pedido no existe (o no es de este comercio) no muestra nada. */
+async function OrderSheetLoader({ tenantId, orderId, closeHref }: { tenantId: string; orderId: string; closeHref: string }) {
+  const detail = await getOrderDetail(tenantId, orderId);
+  if (!detail) return null;
+  return (
+    <OrderSheet title={`Order #${detail.order.order_number}`} closeHref={closeHref}>
+      <OrderDetail detail={detail} />
+    </OrderSheet>
+  );
 }

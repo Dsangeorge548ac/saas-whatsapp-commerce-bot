@@ -5,7 +5,6 @@
  */
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ShieldOff } from "lucide-react";
 import { AuthHeading, AuthTopBar } from "@/components/auth/auth-header";
 import { EndDisabledSession } from "@/features/auth/components/EndDisabledSession";
 
@@ -18,7 +17,7 @@ export default function AccountDisabledPage() {
       <AuthTopBar linkLabel="Log in" href="/login" />
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8 py-10">
         <span className="grid size-12 place-items-center rounded-2xl bg-danger/10 text-danger-strong">
-          <ShieldOff className="size-6" aria-hidden />
+          <i className="ki-filled ki-shield-cross text-2xl" aria-hidden />
         </span>
         <AuthHeading
           step="Account status"
